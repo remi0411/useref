@@ -15,6 +15,9 @@ var regcc = /(<!--\[if\s.*?\]>)[\s\S]*?(<!\[endif\]-->)/i;
 // TODO: Detect 'src' attribute.
 var regscript = /<?script\(?\b[^<]*(?:(?!<\/script>|\))<[^<]*)*(?:<\/script>|\))/gmi;
 
+var regangscript = /<?style-sheet-loader\(?\b[^<]*(?:(?!<\/script>|\))<[^<]*)*(?:<\/style-sheet-loader>|\))/gmi;
+
+
 // css link element regular expression
 // TODO: Determine if 'href' attribute is present.
 var regcss = /<?link.*?(?:>|\))/gmi;
@@ -154,7 +157,20 @@ var helpers = {
             }
         }
 
-    } else if (type === 'remove') {
+    } else if (type === 'angularjsstyle') {
+      // Check to see if there are any js references at all.
+      if( blockContent.search(regangscript) !== -1 )
+      {
+          if(attbs) {
+            ref = '<style-sheet-loader css-file="' + target + '" ' + attbs + '></style-sheet-loader>';
+          } else {
+            console.log("il y en a pas");
+            ref = '<style-sheet-loader css-file="' + target + '"></style-sheet-loader>';
+          }
+      }
+
+  }
+    else if (type === 'remove') {
         ref = '';
     } else if (handler) {
       ref = handler(blockContent, target, attbs, alternateSearchPaths);
@@ -216,9 +232,8 @@ function compactContent(blocks) {
 
     // parse out the list of assets to handle, and update the grunt config accordingly
     var assets = lines.map(function (tag) {
-
       // The asset is the string of the referenced source file
-      var asset = (tag.match(/(href|src)=["']([^'"]+)["']/) || [])[2];
+      var asset = (tag.match(/(href|src|css-file)=["']([^'"]+)["']/) || [])[2];
 
       // Allow white space and comment in build blocks by checking if this line has an asset or not
       if (asset) {
